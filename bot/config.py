@@ -58,6 +58,14 @@ class Config:
         cls.PROXY_URL = os.getenv("PROXY_URL", "").strip() or None
         cls.DOWNLOAD_DIR = Path(os.getenv("DOWNLOAD_DIR", "./downloads")).resolve()
 
+        # Check if raw cookies text is passed via YOUTUBE_COOKIES environment variable
+        raw_cookies = os.getenv("YOUTUBE_COOKIES", "").strip() or os.getenv("COOKIES_CONTENT", "").strip()
+        if raw_cookies:
+            cls.DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+            cookie_file_path = cls.DOWNLOAD_DIR / "youtube_cookies.txt"
+            cookie_file_path.write_text(raw_cookies, encoding="utf-8")
+            cls.COOKIES_FILE = str(cookie_file_path)
+
     @classmethod
     def validate(cls) -> None:
         """Validate critical configuration parameters."""

@@ -4,10 +4,11 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install ffmpeg and ca-certificates
+# Install ffmpeg, nodejs (for yt-dlp JavaScript cipher deciphering), and ca-certificates
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
+    nodejs \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

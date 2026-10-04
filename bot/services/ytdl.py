@@ -41,6 +41,16 @@ def get_base_ydl_opts() -> Dict[str, Any]:
         "noplaylist": True,
         "extract_flat": False,
         "source_address": "0.0.0.0",  # bind to ipv4
+        # Use mobile & embedded clients which bypass web bot verification challenges
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "ios", "mweb", "web"]
+            }
+        },
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
     }
 
     if Config.COOKIES_FILE and os.path.exists(Config.COOKIES_FILE):

@@ -1,0 +1,11 @@
+services:
+  telegram-bot:
+    build: .
+    container_name: yt-downloader-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./downloads:/app/downloads
+      # Optional: uncomment if you have a cookies.txt file for anti-bot bypass
+      # - ./cookies.txt:/app/cookies.txt:ro

@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
+ENV/
+
+# Configuration & Secrets
+.env
+cookies.txt
+
+# Downloads and temporary media
+downloads/
+temp/
+*.mp4
+*.m4a
+*.mp3
+*.webm
+*.part
+*.ytdl
+
+# Logs
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store

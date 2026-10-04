@@ -23,9 +23,11 @@ class Config:
 
     # Optional custom Telegram Bot API URL (for local bot API servers)
     TELEGRAM_API_URL: Optional[str] = os.getenv("TELEGRAM_API_URL", "").strip() or None
+    TELEGRAM_API_ID: Optional[str] = os.getenv("TELEGRAM_API_ID", "").strip() or None
+    TELEGRAM_API_HASH: Optional[str] = os.getenv("TELEGRAM_API_HASH", "").strip() or None
 
-    # Maximum file size allowed in megabytes
-    MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "50").strip())
+    # Maximum file size allowed in megabytes (Default 2000 MB / 2 GB for local server and long videos)
+    MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "2000").strip())
     MAX_FILE_SIZE_BYTES: int = MAX_FILE_SIZE_MB * 1024 * 1024
 
     # Optional cookies file for YouTube anti-bot bypass
@@ -48,7 +50,9 @@ class Config:
             if uid.strip().isdigit()
         } if raw else set()
         cls.TELEGRAM_API_URL = os.getenv("TELEGRAM_API_URL", "").strip() or None
-        cls.MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "50").strip())
+        cls.TELEGRAM_API_ID = os.getenv("TELEGRAM_API_ID", "").strip() or None
+        cls.TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "").strip() or None
+        cls.MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "2000").strip())
         cls.MAX_FILE_SIZE_BYTES = cls.MAX_FILE_SIZE_MB * 1024 * 1024
         cls.COOKIES_FILE = os.getenv("COOKIES_FILE", "").strip() or None
         cls.PROXY_URL = os.getenv("PROXY_URL", "").strip() or None

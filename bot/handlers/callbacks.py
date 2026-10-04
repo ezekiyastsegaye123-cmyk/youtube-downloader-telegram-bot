@@ -95,15 +95,15 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 )
 
                 file_size = downloaded_file.stat().st_size
-                # If using standard Bot API and exceeds limit
-                if not Config.TELEGRAM_API_URL and file_size > Config.MAX_FILE_SIZE_BYTES:
+                # Check against configured MAX_FILE_SIZE_BYTES (up to 2000MB)
+                if file_size > Config.MAX_FILE_SIZE_BYTES:
                     size_str = format_bytes(file_size)
                     max_str = format_bytes(Config.MAX_FILE_SIZE_BYTES)
                     await progress_msg.edit_text(
-                        f"⚠️ **File size exceeds Telegram's limit!**\n\n"
+                        f"⚠️ **File size exceeds allowed limit!**\n\n"
                         f"Downloaded size: `{size_str}`\n"
-                        f"Telegram limit: `{max_str}`\n\n"
-                        f"👉 *Recommendation:* Please select a lower resolution (e.g. 480p or 360p) or MP3 audio.",
+                        f"Maximum limit: `{max_str}`\n\n"
+                        f"👉 *Recommendation:* Please select a lower resolution or MP3 audio.",
                         parse_mode="Markdown"
                     )
                     return
@@ -111,7 +111,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 # Notify user of upload
                 await reporter.notify_uploading()
 
-                # Upload to Telegram
+                # Upload to Telegram with extended timeout for large files (up to 2GB)
                 with open(downloaded_file, "rb") as media_stream:
                     if is_audio:
                         await context.bot.send_audio(
@@ -121,6 +121,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                             performer=uploader,
                             duration=duration,
                             caption=f"🎵 **{title}**\n👤 {uploader}",
+                            write_timeout=1800,
+                            read_timeout=1800,
                             parse_mode="Markdown"
                         )
                     else:
@@ -130,6 +132,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                             caption=f"🎬 **{title}**",
                             duration=duration,
                             supports_streaming=True,
+                            write_timeout=1800,
+                            read_timeout=1800,
                             parse_mode="Markdown"
                         )
 

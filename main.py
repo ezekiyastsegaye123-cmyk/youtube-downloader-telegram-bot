@@ -75,11 +75,26 @@ async def post_init(application) -> None:
         port = int(port_str)
         asyncio.create_task(run_health_check_server(port))
 
+from telegram.request import HTTPXRequest
+
 def build_application():
     """Build and configure the Telegram application."""
     Config.validate()
 
-    builder = ApplicationBuilder().token(Config.BOT_TOKEN).post_init(post_init)
+    # Configure long timeouts to support uploading large 1-2GB files without disconnecting
+    request = HTTPXRequest(
+        connect_timeout=60.0,
+        read_timeout=1800.0,
+        write_timeout=1800.0,
+        pool_timeout=60.0,
+    )
+
+    builder = (
+        ApplicationBuilder()
+        .token(Config.BOT_TOKEN)
+        .request(request)
+        .post_init(post_init)
+    )
 
     if Config.TELEGRAM_API_URL:
         logger.info(f"Using custom Telegram Bot API endpoint: {Config.TELEGRAM_API_URL}")

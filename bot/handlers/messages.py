@@ -82,7 +82,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     for res in metadata.available_resolutions:
         size_str = format_bytes(res["size"]) if res["size"] else ""
         size_badge = f" ({size_str})" if size_str else ""
-        warning_badge = " ⚠️>50MB" if res["exceeds_limit"] else ""
+        warning_badge = f" ⚠️>{Config.MAX_FILE_SIZE_MB}MB" if res["exceeds_limit"] else ""
         button_text = f"🎬 {res['label']}{size_badge}{warning_badge}"
         callback_data = f"dl:v:{res['height']}:{video_id}"
 
@@ -96,7 +96,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Audio button
     audio_size_str = format_bytes(metadata.audio_info["size"]) if metadata.audio_info["size"] else ""
     audio_badge = f" ({audio_size_str})" if audio_size_str else ""
-    audio_warning = " ⚠️>50MB" if metadata.audio_info["exceeds_limit"] else ""
+    audio_warning = f" ⚠️>{Config.MAX_FILE_SIZE_MB}MB" if metadata.audio_info["exceeds_limit"] else ""
     keyboard.append([
         InlineKeyboardButton(
             f"🎵 MP3 Audio{audio_badge}{audio_warning}",

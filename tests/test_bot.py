@@ -152,5 +152,38 @@ class TestApplicationSetup(unittest.TestCase):
         self.assertGreaterEqual(len(app.handlers[0]), 5)
 
 
+from bot.services.splitter import split_media_if_needed, get_media_duration
+import subprocess
+
+class TestMediaSplitter(unittest.TestCase):
+    """Test media duration detection and automatic splitting."""
+
+    def test_small_file_not_split(self):
+        async def run_test():
+            async with temp_download_workspace(prefix="test_split_small_") as ws:
+                dummy = ws / "small.mp4"
+                dummy.write_bytes(b"0" * 1024)  # 1 KB
+                parts = await split_media_if_needed(dummy, ws, max_part_size_mb=46)
+                self.assertEqual(len(parts), 1)
+                self.assertEqual(parts[0], dummy)
+        asyncio.run(run_test())
+
+    def test_media_splitting_when_needed(self):
+        async def run_test():
+            async with temp_download_workspace(prefix="test_split_action_") as ws:
+                media_file = ws / "test_audio.mp3"
+                # Generate 20s test audio
+                cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=1000:duration=20", "-c:a", "libmp3lame", str(media_file)]
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                
+                # Split with tiny threshold so it triggers split
+                parts = await split_media_if_needed(media_file, ws, max_part_size_mb=0.05, estimated_duration=20)
+                self.assertGreater(len(parts), 1)
+                for part in parts:
+                    self.assertTrue(part.exists())
+                    self.assertGreater(part.stat().st_size, 0)
+        asyncio.run(run_test())
+
+
 if __name__ == "__main__":
     unittest.main()

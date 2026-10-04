@@ -10,6 +10,7 @@ from bot.utils.rate_limiter import concurrency_manager
 from bot.services.cleaner import temp_download_workspace
 from bot.services.progress import ThrottledProgressReporter, format_bytes
 from bot.services.ytdl import download_media
+from bot.services.splitter import split_media_if_needed
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 )
 
                 file_size = downloaded_file.stat().st_size
-                # Check against configured MAX_FILE_SIZE_BYTES (up to 2000MB)
+                # Absolute upper limit check (2GB default)
                 if file_size > Config.MAX_FILE_SIZE_BYTES:
                     size_str = format_bytes(file_size)
                     max_str = format_bytes(Config.MAX_FILE_SIZE_BYTES)
@@ -108,34 +109,65 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                     )
                     return
 
-                # Notify user of upload
-                await reporter.notify_uploading()
+                # If using local Bot API, single uploads up to 2000MB are supported.
+                # If on standard Telegram cloud API, automatically split files >46MB into parts.
+                max_single_upload_mb = 2000 if Config.TELEGRAM_API_URL else 46
 
-                # Upload to Telegram with extended timeout for large files (up to 2GB)
-                with open(downloaded_file, "rb") as media_stream:
-                    if is_audio:
-                        await context.bot.send_audio(
-                            chat_id=chat_id,
-                            audio=media_stream,
-                            title=title,
-                            performer=uploader,
-                            duration=duration,
-                            caption=f"🎵 **{title}**\n👤 {uploader}",
-                            write_timeout=1800,
-                            read_timeout=1800,
-                            parse_mode="Markdown"
-                        )
+                parts = [downloaded_file]
+                if file_size > max_single_upload_mb * 1024 * 1024:
+                    await progress_msg.edit_text(
+                        f"✂️ **File is {format_bytes(file_size)} (>50MB).**\n"
+                        "Splitting into parts for Telegram delivery with zero quality loss...\nPlease wait a moment.",
+                        parse_mode="Markdown"
+                    )
+                    parts = await split_media_if_needed(
+                        input_file=downloaded_file,
+                        output_dir=workspace_dir,
+                        max_part_size_mb=46,
+                        estimated_duration=duration
+                    )
+
+                total_parts = len(parts)
+
+                # Upload part(s) to Telegram
+                for idx, part_file in enumerate(parts, start=1):
+                    part_badge = f" [Part {idx}/{total_parts}]" if total_parts > 1 else ""
+                    if total_parts > 1:
+                        try:
+                            await progress_msg.edit_text(
+                                f"📤 **Uploading{part_badge} to Telegram...**\n"
+                                f"Part size: `{format_bytes(part_file.stat().st_size)}`",
+                                parse_mode="Markdown"
+                            )
+                        except Exception:
+                            pass
                     else:
-                        await context.bot.send_video(
-                            chat_id=chat_id,
-                            video=media_stream,
-                            caption=f"🎬 **{title}**",
-                            duration=duration,
-                            supports_streaming=True,
-                            write_timeout=1800,
-                            read_timeout=1800,
-                            parse_mode="Markdown"
-                        )
+                        await reporter.notify_uploading()
+
+                    with open(part_file, "rb") as media_stream:
+                        if is_audio:
+                            await context.bot.send_audio(
+                                chat_id=chat_id,
+                                audio=media_stream,
+                                title=f"{title}{part_badge}",
+                                performer=uploader,
+                                duration=duration,
+                                caption=f"🎵 **{title}**{part_badge}\n👤 {uploader}",
+                                write_timeout=1800,
+                                read_timeout=1800,
+                                parse_mode="Markdown"
+                            )
+                        else:
+                            await context.bot.send_video(
+                                chat_id=chat_id,
+                                video=media_stream,
+                                caption=f"🎬 **{title}**{part_badge}",
+                                duration=duration,
+                                supports_streaming=True,
+                                write_timeout=1800,
+                                read_timeout=1800,
+                                parse_mode="Markdown"
+                            )
 
                 # Cleanup status message
                 try:

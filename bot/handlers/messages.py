@@ -80,10 +80,10 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Video buttons
     video_row = []
     for res in metadata.available_resolutions:
-        size_str = format_bytes(res["size"]) if res["size"] else ""
-        size_badge = f" ({size_str})" if size_str else ""
-        warning_badge = f" ⚠️>{Config.MAX_FILE_SIZE_MB}MB" if res["exceeds_limit"] else ""
-        button_text = f"🎬 {res['label']}{size_badge}{warning_badge}"
+        size = res.get("size", 0)
+        size_str = format_bytes(size) if size else ""
+        split_hint = " ✂️" if size > 48 * 1024 * 1024 and not Config.TELEGRAM_API_URL else ""
+        button_text = f"🎬 {res['label']} ({size_str}{split_hint})" if size_str else f"🎬 {res['label']}"
         callback_data = f"dl:v:{res['height']}:{video_id}"
 
         video_row.append(InlineKeyboardButton(button_text, callback_data=callback_data))
@@ -94,12 +94,13 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         keyboard.append(video_row)
 
     # Audio button
-    audio_size_str = format_bytes(metadata.audio_info["size"]) if metadata.audio_info["size"] else ""
-    audio_badge = f" ({audio_size_str})" if audio_size_str else ""
-    audio_warning = f" ⚠️>{Config.MAX_FILE_SIZE_MB}MB" if metadata.audio_info["exceeds_limit"] else ""
+    audio_size = metadata.audio_info.get("size", 0)
+    audio_size_str = format_bytes(audio_size) if audio_size else ""
+    audio_split_hint = " ✂️" if audio_size > 48 * 1024 * 1024 and not Config.TELEGRAM_API_URL else ""
+    audio_text = f"🎵 MP3 Audio ({audio_size_str}{audio_split_hint})" if audio_size_str else "🎵 MP3 Audio"
     keyboard.append([
         InlineKeyboardButton(
-            f"🎵 MP3 Audio{audio_badge}{audio_warning}",
+            audio_text,
             callback_data=f"dl:a:mp3:{video_id}"
         )
     ])
@@ -111,12 +112,14 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     duration_str = format_eta(metadata.duration)
     playlist_warning = "\n\n⚠️ _Note: Playlists are not downloaded in batch. Only this video is selected._" if is_playlist else ""
+    split_info = "\n\n✂️ _Files >50MB will be automatically split into seamless parts for Telegram delivery._" if not Config.TELEGRAM_API_URL else ""
 
     caption = (
         f"🎬 **{metadata.title}**\n\n"
         f"👤 **Channel:** {metadata.uploader}\n"
         f"⏱️ **Duration:** `{duration_str}`"
-        f"{playlist_warning}\n\n"
+        f"{playlist_warning}"
+        f"{split_info}\n\n"
         "👇 **Select your preferred format to download:**"
     )
 
